@@ -135,7 +135,7 @@
     <p id="hint"></p>
   </div>
 
-  <button id="replay">もう一度</button>
+  <button id="replay">back</button>
   <button id="next">next</button>
   <button id="tap">tap</button>
 </div>
@@ -470,6 +470,91 @@ function drawBubbles(){
   });
 }
 
+/* ============ sunflower gear ============ */
+function gearGeom(){
+  const cx = W * 0.5;
+  const cy = horizon - poleH * 0.30;
+  const r  = Math.max(W * 0.245, poleH * 0.68);
+  return { cx, cy, r };
+}
+
+function drawGearBack(){
+  const { cx, cy, r } = gearGeom();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(6,12,30,0.52)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGearFront(t){
+  const { cx, cy, r } = gearGeom();
+  const angle      = t * 0.13;
+  const petalCount = 18;
+  const petalLen   = r * 0.40;
+  const petalW     = r * 0.125;
+  const spokeCount = 8;
+  const hubR       = r * 0.11;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  /* sunflower petals */
+  for(let i = 0; i < petalCount; i++){
+    const a = (i / petalCount) * Math.PI * 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.translate(r + petalLen * 0.42, 0);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, petalLen * 0.50, petalW * 0.50, 0, 0, Math.PI*2);
+    const pg = ctx.createRadialGradient(-petalLen*0.18, 0, 0, 0, 0, petalLen*0.52);
+    pg.addColorStop(0,   'rgba(255,222,48,0.97)');
+    pg.addColorStop(0.55,'rgba(235,168,18,0.87)');
+    pg.addColorStop(1,   'rgba(170,112,8,0.48)');
+    ctx.fillStyle = pg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(145,90,4,0.42)';
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* outer ring */
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(205,158,28,0.72)';
+  ctx.lineWidth = Math.max(2, r * 0.024);
+  ctx.stroke();
+
+  /* spokes */
+  ctx.strokeStyle = 'rgba(185,140,22,0.33)';
+  ctx.lineWidth = Math.max(1, r * 0.011);
+  for(let i = 0; i < spokeCount; i++){
+    const a = (i / spokeCount) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*hubR*1.6,  Math.sin(a)*hubR*1.6);
+    ctx.lineTo(Math.cos(a)*r*0.91,    Math.sin(a)*r*0.91);
+    ctx.stroke();
+  }
+
+  /* sunflower centre hub */
+  const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, hubR*2.6);
+  hg.addColorStop(0,   'rgba(100,62,6,0.97)');
+  hg.addColorStop(0.55,'rgba(72,44,3,0.88)');
+  hg.addColorStop(1,   'rgba(46,28,2,0.50)');
+  ctx.beginPath();
+  ctx.arc(0, 0, hubR*2.6, 0, Math.PI*2);
+  ctx.fillStyle = hg;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(190,145,26,0.58)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 /* ============ 電信柱のささやき ============ */
 const rumors = [
   'みぶんがちがう','本線と軽便','東京へ知らせました',
@@ -553,8 +638,14 @@ function goGreek1(){
 
 function goGreek2(){
   scene='greek2'; sceneStart=performance.now();
+  say('','');
+}
+
+function goGear(){
+  scene='gear'; sceneStart=performance.now();
   nextBtn.classList.remove('show');
   replayBtn.classList.add('show');
+  loveBubbles=[]; ripples=[];
   say('','');
 }
 
@@ -632,6 +723,7 @@ nextBtn.addEventListener('click', e=>{
   e.stopPropagation();
   if(scene==='distance') goGreek1();
   else if(scene==='greek1') goGreek2();
+  else if(scene==='greek2') goGear();
 });
 tapBtn.addEventListener('click', e=>{ e.stopPropagation(); goDistance(); });
 
@@ -713,12 +805,16 @@ function loop(now){
 
   if(scene==='light'||scene==='merge'||scene==='end') drawBeams();
 
+  if(scene==='gear') drawGearBack();
+
   const jitter = signal.shake ? (Math.random()-0.5)*signal.shake : 0;
   const keep = signal.offset;
   signal.offset = keep + jitter;
   drawPole(signal, {metal:true});
   signal.offset = keep;
   drawPole(signaless, {metal:false});
+
+  if(scene==='gear') drawGearFront(t);
 
   drawRipples();
   drawBubbles();
