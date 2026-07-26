@@ -474,7 +474,7 @@ function drawBubbles(){
 function gearGeom(){
   const cx = W * 0.5;
   const cy = horizon - poleH * 0.30;
-  const r  = Math.max(W * 0.245, poleH * 0.68);
+  const r  = Math.max(W * 0.245, poleH * 0.68) * 0.7;
   return { cx, cy, r };
 }
 
@@ -510,13 +510,13 @@ function drawGearFront(t){
     ctx.beginPath();
     ctx.ellipse(0, 0, petalLen * 0.50, petalW * 0.50, 0, 0, Math.PI*2);
     const pg = ctx.createRadialGradient(-petalLen*0.18, 0, 0, 0, 0, petalLen*0.52);
-    pg.addColorStop(0,   'rgba(255,222,48,0.97)');
-    pg.addColorStop(0.55,'rgba(235,168,18,0.87)');
-    pg.addColorStop(1,   'rgba(170,112,8,0.48)');
+    pg.addColorStop(0,   'rgba(255,248,200,0.58)');
+    pg.addColorStop(0.50,'rgba(248,225,130,0.35)');
+    pg.addColorStop(1,   'rgba(230,195,80,0.10)');
     ctx.fillStyle = pg;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(145,90,4,0.42)';
-    ctx.lineWidth = 0.9;
+    ctx.strokeStyle = 'rgba(220,195,100,0.18)';
+    ctx.lineWidth = 0.7;
     ctx.stroke();
     ctx.restore();
   }
@@ -524,13 +524,13 @@ function drawGearFront(t){
   /* outer ring */
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI*2);
-  ctx.strokeStyle = 'rgba(205,158,28,0.72)';
-  ctx.lineWidth = Math.max(2, r * 0.024);
+  ctx.strokeStyle = 'rgba(235,215,140,0.38)';
+  ctx.lineWidth = Math.max(1.2, r * 0.018);
   ctx.stroke();
 
   /* spokes */
-  ctx.strokeStyle = 'rgba(185,140,22,0.33)';
-  ctx.lineWidth = Math.max(1, r * 0.011);
+  ctx.strokeStyle = 'rgba(225,205,120,0.18)';
+  ctx.lineWidth = Math.max(0.8, r * 0.009);
   for(let i = 0; i < spokeCount; i++){
     const a = (i / spokeCount) * Math.PI * 2;
     ctx.beginPath();
@@ -541,15 +541,15 @@ function drawGearFront(t){
 
   /* sunflower centre hub */
   const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, hubR*2.6);
-  hg.addColorStop(0,   'rgba(100,62,6,0.97)');
-  hg.addColorStop(0.55,'rgba(72,44,3,0.88)');
-  hg.addColorStop(1,   'rgba(46,28,2,0.50)');
+  hg.addColorStop(0,   'rgba(100,80,30,0.48)');
+  hg.addColorStop(0.55,'rgba(80,60,20,0.30)');
+  hg.addColorStop(1,   'rgba(60,45,10,0.10)');
   ctx.beginPath();
   ctx.arc(0, 0, hubR*2.6, 0, Math.PI*2);
   ctx.fillStyle = hg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(190,145,26,0.58)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(220,200,110,0.28)';
+  ctx.lineWidth = 1.0;
   ctx.stroke();
 
   ctx.restore();
@@ -807,12 +807,20 @@ function loop(now){
 
   if(scene==='gear') drawGearBack();
 
+  if(scene==='gear'){
+    const { cx, cy } = gearGeom();
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(0.6, 0.6);
+    ctx.translate(-cx, -cy);
+  }
   const jitter = signal.shake ? (Math.random()-0.5)*signal.shake : 0;
   const keep = signal.offset;
   signal.offset = keep + jitter;
   drawPole(signal, {metal:true});
   signal.offset = keep;
   drawPole(signaless, {metal:false});
+  if(scene==='gear') ctx.restore();
 
   if(scene==='gear') drawGearFront(t);
 
