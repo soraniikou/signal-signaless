@@ -342,7 +342,7 @@ function spawnRipple(p){
   ripples.push({
     x: lp.x, y: lp.y,
     r: poleH*0.04,
-    maxR: poleH*(0.22 + Math.random()*0.28),
+    maxR: poleH*(0.44 + Math.random()*0.56),
     speed: poleH*0.007 + Math.random()*poleH*0.005
   });
 }
@@ -614,8 +614,8 @@ function loop(now){
 
   /* spawn love ripples & bubbles (not during anger) */
   if(scene!=='anger'){
-    if(Math.random()<0.015) spawnRipple(signal);
-    if(Math.random()<0.015) spawnRipple(signaless);
+    if(Math.random()<0.0025) spawnRipple(signal);
+    if(Math.random()<0.0025) spawnRipple(signaless);
     if(Math.random()<0.018) spawnBubble(signal);
     if(Math.random()<0.018) spawnBubble(signaless);
   }
