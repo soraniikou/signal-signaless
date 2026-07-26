@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>シグナルとシグナレス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500&family=Zen+Kaku+Gothic+New:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#050914;
+    --sky-bottom:#0d1a35;
+    --ink:#d3daea;
+    --whisper:#6d7893;
+    --lamp:#c8402f;
+    --blue:#5aa0f5;
+    --green:#4fd6a0;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--sky-top);
+    overflow:hidden;
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    color:var(--ink);
+    user-select:none;
+    touch-action:none;
+  }
+  #stage{ position:relative; width:100vw; height:100vh; overflow:hidden; }
+  canvas{ position:absolute; inset:0; width:100%; height:100%; }
+
+  #text-layer{
+    position:absolute; inset:0; z-index:5;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-end;
+    padding:0 8vw 7vh;
+    pointer-events:none;
+  }
+  #line{
+    font-family:'Shippori Mincho',serif;
+    font-size:clamp(16px,2.5vmin,22px);
+    line-height:2.1; text-align:center; letter-spacing:.09em;
+    max-width:600px; margin:0;
+    opacity:0; transition:opacity 1.8s ease;
+    text-shadow:0 2px 14px rgba(3,6,16,.95);
+  }
+  #line.show{ opacity:1; }
+  #hint{
+    font-weight:300;
+    font-size:clamp(10px,1.5vmin,12px);
+    letter-spacing:.28em; color:var(--whisper);
+    margin:22px 0 0; opacity:0;
+    transition:opacity 1.6s ease;
+    text-shadow:0 2px 14px rgba(3,6,16,.95);
+  }
+  #hint.show{ opacity:1; animation:pulse 3.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:.45} 50%{opacity:.95} }
+
+  #title{
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:6; opacity:0; transition:opacity 2.2s ease;
+  }
+  #title.show{ opacity:1; }
+  #title h1{
+    font-family:'Shippori Mincho',serif;
+    font-weight:500;
+    font-size:clamp(22px,4.2vmin,34px);
+    letter-spacing:.34em; margin:0 0 0 .34em;
+    color:#e4eaf8;
+    text-shadow:0 2px 20px rgba(3,6,16,.95);
+  }
+  #title p{
+    font-weight:300; font-size:clamp(10px,1.5vmin,12px);
+    letter-spacing:.3em; color:var(--whisper); margin:20px 0 0 .3em;
+  }
+
+  #replay{
+    position:absolute; bottom:5vh; left:50%; transform:translateX(-50%);
+    font-family:'Zen Kaku Gothic New',sans-serif; font-weight:300;
+    font-size:12px; letter-spacing:.2em;
+    background:transparent; color:var(--ink);
+    border:1px solid rgba(211,218,234,.3); border-radius:999px;
+    padding:9px 26px; cursor:pointer; z-index:8;
+    opacity:0; pointer-events:none; transition:opacity 1.6s ease,background .4s ease;
+  }
+  #replay.show{ opacity:1; pointer-events:auto; }
+  #replay:hover{ background:rgba(211,218,234,.08); }
+
+  @media (prefers-reduced-motion: reduce){
+    #hint.show{ animation:none; opacity:.8; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="sky"></canvas>
+  <canvas id="scene"></canvas>
+
+  <div id="title"></div>
+
+  <div id="text-layer">
+    <p id="line"></p>
+    <p id="hint"></p>
+  </div>
+
+  <button id="replay">もう一度</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ canvas ============ */
+const skyC = document.getElementById('sky');
+const sctx = skyC.getContext('2d');
+const objC = document.getElementById('scene');
+const ctx  = objC.getContext('2d');
+const stage = document.getElementById('stage');
+const lineEl = document.getElementById('line');
+const hintEl = document.getElementById('hint');
+const titleEl = document.getElementById('title');
+const replayBtn = document.getElementById('replay');
+
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let W=0, H=0, DPR=1, horizon=0, poleH=0;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio||1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  [skyC,objC].forEach(c=>{
+    c.width = W*DPR; c.height = H*DPR;
+    c.style.width = W+'px'; c.style.height = H+'px';
+  });
+  sctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  horizon = H*0.74;
+  poleH = Math.min(H*0.34, W*0.42);
+  buildStars();
+}
+window.addEventListener('resize', resize);
+
+/* ============ stars ============ */
+let stars=[];
+function buildStars(){
+  stars=[];
+  const n = Math.round((W*H)/9000);
+  for(let i=0;i<Math.min(n,180);i++){
+    stars.push({
+      x:Math.random()*W,
+      y:Math.random()*horizon*0.95,
+      r:Math.random()*1.2+.25,
+      a:Math.random()*.55+.18,
+      tw:Math.random()*Math.PI*2,
+      sp:Math.random()*.9+.25
+    });
+  }
+}
+
+/* state that dims the sky during anger */
+let starDim = 0;   // 0..1
+let shake = 0;     // px
+
+function drawSky(t){
+  sctx.clearRect(0,0,W,H);
+  const g = sctx.createLinearGradient(0,0,0,horizon);
+  g.addColorStop(0,'#050914');
+  g.addColorStop(1,'#0d1a35');
+  sctx.fillStyle=g; sctx.fillRect(0,0,W,horizon+2);
+
+  for(const s of stars){
+    const tw = reduced ? 0 : Math.sin(t*s.sp + s.tw)*0.18;
+    const a = Math.max(0,(s.a+tw)*(1-starDim*0.9));
+    sctx.beginPath();
+    sctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sctx.fillStyle = 'rgba(226,233,250,'+a+')';
+    sctx.fill();
+  }
+
+  /* snow hills — flat layered shapes, after the picture book */
+  const hills = [
+    {y:horizon-H*0.055, amp:H*0.030, col:'#1d3f66', ph:0.0, f:1.4},
+    {y:horizon-H*0.012, amp:H*0.022, col:'#2c5f8d', ph:1.7, f:2.1},
+    {y:horizon+H*0.030, amp:H*0.016, col:'#4d88b4', ph:3.4, f:2.8}
+  ];
+  for(const h of hills){
+    sctx.beginPath();
+    sctx.moveTo(0,H);
+    for(let x=0;x<=W;x+=6){
+      const u = x/W;
+      const y = h.y + Math.sin(u*Math.PI*h.f + h.ph)*h.amp
+                    + Math.sin(u*Math.PI*h.f*2.6 + h.ph*1.9)*h.amp*0.35;
+      sctx.lineTo(x,y);
+    }
+    sctx.lineTo(W,H); sctx.closePath();
+    sctx.fillStyle=h.col; sctx.fill();
+  }
+}
+
+/* ============ poles ============ */
+/* signal: 本線の金属＋電気式（黒と白）  signaless: 軽便の木製＋ランプ式（黄土） */
+const signal    = { xr:0.29, offset:0, lamp:0, shake:0 };
+const signaless = { xr:0.71, offset:0, lamp:0, shake:0 };
+
+function poleGeom(p){
+  const x = W*p.xr + p.offset;
+  const base = horizon + H*0.035;
+  const top = base - poleH;
+  const w = Math.max(7, poleH*0.052);
+  return {x, base, top, w};
+}
+function lampPos(p){
+  const g = poleGeom(p);
+  return {x:g.x + g.w*2.6, y:g.top + poleH*0.30};
+}
+
+function drawPole(p, opts){
+  const g = poleGeom(p);
+  const {x, base, top, w} = g;
+  const armW = poleH*0.40, armH = Math.max(6, poleH*0.062);
+  const armY = top + poleH*0.30;
+
+  ctx.save();
+
+  /* post */
+  if(opts.metal){
+    ctx.fillStyle = '#151a24';
+    ctx.fillRect(x-w/2, top, w, base-top);
+    ctx.fillStyle = '#e9eef7';
+    for(let i=0;i<3;i++){
+      const seg = (base-top)/6;
+      ctx.fillRect(x-w/2, top + seg*(i*2+1.6), w, seg*0.9);
+    }
+  } else {
+    ctx.fillStyle = '#c79a4e';
+    ctx.fillRect(x-w/2, top, w, base-top);
+    ctx.fillStyle = '#8a6329';
+    ctx.fillRect(x-w/2, base-poleH*0.10, w, poleH*0.10);
+  }
+
+  /* cap */
+  ctx.fillStyle = '#12161f';
+  ctx.beginPath();
+  ctx.moveTo(x, top - poleH*0.075);
+  ctx.lineTo(x + w*1.9, top + poleH*0.005);
+  ctx.lineTo(x - w*1.9, top + poleH*0.005);
+  ctx.closePath(); ctx.fill();
+
+  /* arm — the semaphore blade */
+  const tilt = opts.metal ? -0.10 : 0.10;
+  ctx.save();
+  ctx.translate(x, armY);
+  ctx.rotate(tilt);
+  if(opts.metal){
+    ctx.fillStyle='#c8402f'; ctx.fillRect(-armW, -armH/2, armW, armH);
+    ctx.fillStyle='#f2f5fb'; ctx.fillRect(-armW*0.30, -armH/2, armW*0.14, armH);
+  } else {
+    ctx.fillStyle='#f2f5fb'; ctx.fillRect(0, -armH/2, armW, armH);
+    ctx.fillStyle='#12161f'; ctx.fillRect(armW*0.24, -armH/2, armW*0.13, armH);
+  }
+  ctx.restore();
+
+  /* lamp housing + light */
+  const lp = lampPos(p);
+  const lx = opts.metal ? lp.x : x - w*2.6;
+  const lr = Math.max(6, poleH*0.055);
+  ctx.beginPath();
+  ctx.arc(lx, lp.y, lr*1.55, 0, Math.PI*2);
+  ctx.fillStyle = '#12161f'; ctx.fill();
+
+  const lit = p.lamp;
+  ctx.beginPath();
+  ctx.arc(lx, lp.y, lr, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(200,64,47,'+(0.30 + lit*0.70)+')';
+  if(lit>0.02){ ctx.shadowColor='rgba(200,64,47,'+(lit*0.9)+')'; ctx.shadowBlur=26*lit; }
+  ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+  return {lx, ly:lp.y};
+}
+
+/* ============ beams ============ */
+let beamA = 0, beamB = 0;         // 0..1
+let bloom = 0;                    // 0..1
+let meet = {x:0,y:0};
+
+function drawBeams(){
+  meet = {x:W*0.5, y:horizon - poleH*1.15};
+  const gs = poleGeom(signal), gl = poleGeom(signaless);
+  const a = {x:gs.x + gs.w*2.6, y:gs.top + poleH*0.30};
+  const b = {x:gl.x - gl.w*2.6, y:gl.top + poleH*0.30};
+
+  drawBeam(a, meet, beamA, '90,160,245');
+  drawBeam(b, meet, beamB, '79,214,160');
+
+  if(bloom>0){
+    const r = poleH*(0.10 + bloom*0.85);
+    const g = ctx.createRadialGradient(meet.x,meet.y,0,meet.x,meet.y,r);
+    const fade = 1-Math.max(0,(bloom-0.6)/0.4);
+    g.addColorStop(0,'rgba(255,255,255,'+(0.95*fade)+')');
+    g.addColorStop(0.35,'rgba(150,230,220,'+(0.45*fade)+')');
+    g.addColorStop(1,'rgba(120,200,255,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.arc(meet.x,meet.y,r,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawBeam(from, to, prog, rgb){
+  if(prog<=0.002) return;
+  const ex = from.x + (to.x-from.x)*prog;
+  const ey = from.y + (to.y-from.y)*prog;
+  const grad = ctx.createLinearGradient(from.x,from.y,ex,ey);
+  grad.addColorStop(0,'rgba('+rgb+',0.05)');
+  grad.addColorStop(0.5,'rgba('+rgb+',0.55)');
+  grad.addColorStop(1,'rgba('+rgb+',0.95)');
+  ctx.save();
+  ctx.lineCap='round';
+  ctx.strokeStyle=grad;
+  ctx.shadowColor='rgba('+rgb+',0.75)'; ctx.shadowBlur=18;
+  ctx.lineWidth=Math.max(2, poleH*0.022);
+  ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey); ctx.stroke();
+  ctx.lineWidth=Math.max(1, poleH*0.007);
+  ctx.strokeStyle='rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(ex,ey); ctx.stroke();
+  ctx.restore();
+}
+
+/* ============ 電信柱のささやき ============ */
+const rumors = [
+  'みぶんがちがう','本線と軽便','東京へ知らせました',
+  'あの微笑みは なんだったのか','ゆるされません','分をわきまえよ'
+];
+let whispers = [];
+function spawnWhisper(){
+  whispers.push({
+    text: rumors[Math.floor(Math.random()*rumors.length)],
+    x: Math.random()<0.5 ? -W*0.35 : W*1.05,
+    y: horizon*(0.18+Math.random()*0.62),
+    v: (Math.random()*0.5+0.35)*(Math.random()<0.5?1:-1),
+    a: 0, life:0
+  });
+  if(whispers[whispers.length-1].x<0) whispers[whispers.length-1].v = Math.abs(whispers[whispers.length-1].v);
+  else whispers[whispers.length-1].v = -Math.abs(whispers[whispers.length-1].v);
+}
+function drawWhispers(){
+  ctx.save();
+  ctx.font = '300 '+Math.max(11,Math.round(H*0.017))+"px 'Zen Kaku Gothic New', sans-serif";
+  ctx.textAlign='center';
+  whispers = whispers.filter(w=>{
+    w.life++; w.x += w.v;
+    w.a = w.life<40 ? w.a+0.02 : w.a-0.004;
+    if(w.a<=0) return false;
+    ctx.fillStyle='rgba(190,200,222,'+Math.max(0,Math.min(0.5,w.a))+')';
+    ctx.fillText(w.text, w.x, w.y);
+    return w.x>-W*0.5 && w.x<W*1.5;
+  });
+  ctx.restore();
+}
+
+/* ============ text ============ */
+let lineTimer=null;
+function say(text, hint){
+  clearTimeout(lineTimer);
+  lineEl.classList.remove('show');
+  hintEl.classList.remove('show');
+  lineTimer = setTimeout(()=>{
+    lineEl.innerHTML = text||'';
+    hintEl.textContent = hint||'';
+    requestAnimationFrame(()=>{
+      if(text) lineEl.classList.add('show');
+      if(hint) hintEl.classList.add('show');
+    });
+  }, (text||hint)?520:0);
+}
+
+/* ============ scenes ============ */
+let scene='title';
+let tries=0, taps=0, angerPeak=0, holding=false, released=false;
+let sceneStart=0;
+
+function goTitle(){
+  scene='title';
+  tries=0; taps=0; angerPeak=0; starDim=0; shake=0;
+  beamA=beamB=bloom=0; whispers=[];
+  signal.offset=signaless.offset=0;
+  signal.lamp=signaless.lamp=0;
+  signal.shake=signaless.shake=0;
+  replayBtn.classList.remove('show');
+  say('', '');
+  titleEl.classList.add('show');
+  setTimeout(()=>{ if(scene==='title') hintEl.textContent='ふれる', hintEl.classList.add('show'); }, 2600);
+}
+
+function goDistance(){
+  scene='distance'; sceneStart=performance.now();
+  titleEl.classList.remove('show');
+  say('となりにいるのに、とおい。','ちかづけてみる');
+}
+
+function goAnger(){
+  scene='anger'; sceneStart=performance.now();
+  say('','');
+  setTimeout(()=>{ if(scene==='anger') say('','おす'); }, 900);
+}
+
+function goStillness(){
+  scene='stillness'; sceneStart=performance.now();
+  say('なにをしても、きょりは かわらなかった。','');
+}
+
+function goLight(){
+  scene='light'; sceneStart=performance.now();
+  say('うごかないまま、ひかりだけが のびていく。','おしたまま');
+}
+
+function goMerge(){
+  scene='merge'; sceneStart=performance.now();
+  say('','');
+  setTimeout(()=>{ if(scene!=='merge'&&scene!=='end') return; say('ぼくたちは、ほしになろう。',''); }, 1800);
+  setTimeout(()=>{ if(scene!=='merge'&&scene!=='end') return; say('いつまでも、あおいひかりのなかで。',''); }, 6200);
+  setTimeout(()=>{ scene='end'; replayBtn.classList.add('show'); }, 9600);
+}
+
+/* ============ input ============ */
+let dragging=false, dragStartX=0;
+
+stage.addEventListener('pointerdown', e=>{
+  if(e.target===replayBtn) return;
+  if(scene==='title'){ goDistance(); return; }
+  if(scene==='distance'){ dragging=true; dragStartX=e.clientX; }
+  if(scene==='anger'){
+    taps++;
+    angerPeak = Math.min(1, angerPeak + 0.16);
+    shake = Math.min(14, shake + 4.5);
+    spawnWhisper();
+    if(taps===9){ setTimeout(()=>{ if(scene==='anger') goStillness(); }, 2200); }
+  }
+  if(scene==='light'){ holding=true; }
+});
+
+stage.addEventListener('pointermove', e=>{
+  if(scene==='distance' && dragging){
+    const d = (e.clientX - dragStartX)*0.10;
+    signal.offset = Math.max(-10, Math.min(10, d));
+  }
+});
+
+function endPointer(){
+  if(scene==='distance' && dragging){
+    dragging=false;
+    if(Math.abs(signal.offset)>2.5){
+      tries++;
+      signal.shake = 7;
+      if(tries===1) say('うごかない。','もういちど');
+      if(tries===2) say('いっぽも、うごけない。','もういちど');
+      if(tries>=3){
+        say('しんごうきは、じぶんでは あるけない。','');
+        setTimeout(()=>{ if(scene==='distance') goAnger(); }, 3600);
+      }
+    }
+    signal.offset = 0;
+  }
+  holding=false;
+}
+stage.addEventListener('pointerup', endPointer);
+stage.addEventListener('pointercancel', endPointer);
+stage.addEventListener('pointerleave', endPointer);
+
+replayBtn.addEventListener('click', e=>{ e.stopPropagation(); goTitle(); });
+
+/* keyboard access */
+window.addEventListener('keydown', e=>{
+  if(e.key!==' ' && e.key!=='Enter') return;
+  e.preventDefault();
+  if(scene==='title') goDistance();
+  else if(scene==='distance'){ tries++; signal.shake=7;
+    if(tries===1) say('うごかない。','もういちど');
+    else if(tries===2) say('いっぽも、うごけない。','もういちど');
+    else if(tries>=3){ say('しんごうきは、じぶんでは あるけない。','');
+      setTimeout(()=>{ if(scene==='distance') goAnger(); },3600); }
+  }
+  else if(scene==='anger'){ taps++; angerPeak=Math.min(1,angerPeak+0.16); shake=Math.min(14,shake+4.5); spawnWhisper();
+    if(taps===9) setTimeout(()=>{ if(scene==='anger') goStillness(); },2200); }
+  else if(scene==='light') holding=true;
+});
+window.addEventListener('keyup', e=>{ if(e.key===' '||e.key==='Enter') holding=false; });
+
+/* ============ loop ============ */
+let last=performance.now();
+function loop(now){
+  const dt = Math.min(50, now-last)/1000; last=now;
+  const t = now/1000;
+
+  /* per-scene updates */
+  if(scene==='anger'){
+    angerPeak = Math.max(0, angerPeak - dt*0.22);
+    starDim = Math.min(0.9, angerPeak*1.0);
+    signal.lamp = angerPeak;
+    signaless.lamp = angerPeak*0.85;
+    if(Math.random()<0.012) spawnWhisper();
+  } else if(scene==='stillness'){
+    angerPeak = Math.max(0, angerPeak - dt*0.5);
+    starDim = Math.max(0, starDim - dt*0.35);
+    signal.lamp = Math.max(0, signal.lamp - dt*0.5);
+    signaless.lamp = Math.max(0, signaless.lamp - dt*0.5);
+    if(now - sceneStart > 5200) goLight();
+  } else if(scene==='light'){
+    const rate = reduced ? 0.55 : 0.30;
+    if(holding){ beamA = Math.min(1, beamA + dt*rate); beamB = Math.min(1, beamB + dt*rate); }
+    else { beamA = Math.max(0, beamA - dt*0.16); beamB = Math.max(0, beamB - dt*0.16); }
+    starDim = Math.max(0, starDim - dt*0.3);
+    if(beamA>=1 && beamB>=1) goMerge();
+  } else if(scene==='merge' || scene==='end'){
+    bloom = Math.min(1, bloom + dt*0.16);
+    beamA = Math.max(0, beamA - dt*0.10);
+    beamB = Math.max(0, beamB - dt*0.10);
+  }
+
+  shake = Math.max(0, shake - dt*22);
+  signal.shake = Math.max(0, signal.shake - dt*26);
+
+  /* draw */
+  drawSky(t);
+  ctx.clearRect(0,0,W,H);
+
+  const sx = shake ? (Math.random()-0.5)*shake : 0;
+  const sy = shake ? (Math.random()-0.5)*shake*0.5 : 0;
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  if(scene==='light'||scene==='merge'||scene==='end') drawBeams();
+
+  const jitter = signal.shake ? (Math.random()-0.5)*signal.shake : 0;
+  const keep = signal.offset;
+  signal.offset = keep + jitter;
+  drawPole(signal, {metal:true});
+  signal.offset = keep;
+  drawPole(signaless, {metal:false});
+
+  if(scene==='anger'||scene==='stillness') drawWhispers();
+
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+
+resize();
+goTitle();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
