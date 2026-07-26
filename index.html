@@ -101,6 +101,23 @@
   #next.show{ opacity:1; pointer-events:auto; }
   #next:hover{ background:rgba(255,150,210,.10); }
 
+  #tap{
+    position:absolute; top:58%; left:50%; transform:translateX(-50%);
+    font-family:'Zen Kaku Gothic New',sans-serif; font-weight:300;
+    font-size:clamp(15px,2.4vmin,20px); letter-spacing:.35em;
+    background:transparent; color:rgba(255,200,230,.92);
+    border:1px solid rgba(255,160,210,.55); border-radius:999px;
+    padding:14px 44px; cursor:pointer; z-index:9;
+    opacity:0; pointer-events:none;
+    transition:opacity 1.8s ease,background .4s ease;
+  }
+  #tap.show{ opacity:1; pointer-events:auto; animation:tapGlow 2.8s ease-in-out infinite; }
+  #tap:hover{ background:rgba(255,150,210,.14); }
+  @keyframes tapGlow{
+    0%,100%{ box-shadow:0 0 10px rgba(255,140,210,.18); }
+    50%{ box-shadow:0 0 32px rgba(255,140,210,.60); }
+  }
+
   @media (prefers-reduced-motion: reduce){
     #hint.show{ animation:none; opacity:.8; }
   }
@@ -120,6 +137,7 @@
 
   <button id="replay">もう一度</button>
   <button id="next">next</button>
+  <button id="tap">tap</button>
 </div>
 
 <script>
@@ -137,6 +155,7 @@ const hintEl = document.getElementById('hint');
 const titleEl = document.getElementById('title');
 const replayBtn = document.getElementById('replay');
 const nextBtn   = document.getElementById('next');
+const tapBtn    = document.getElementById('tap');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -379,7 +398,7 @@ function drawRipples(){
 function spawnBubble(p, letter){
   const lp = getLampPos2(p);
   const isSignal = (p === signal);
-  const sizeScale = (letter && letter.length > 2) ? 1.7 : 1.0;
+  const sizeScale = (letter && letter.length > 2) ? 3.4 : 1.0;
   const r = poleH*(0.036 + Math.random()*0.056) * sizeScale;
   const distToCenter = Math.abs(W*0.5 - lp.x);
   const targetFrames = 210 + Math.floor(Math.random()*80);
@@ -516,12 +535,13 @@ function goTitle(){
   nextBtn.classList.remove('show');
   say('', '');
   titleEl.classList.add('show');
-  setTimeout(()=>{ if(scene==='title') hintEl.textContent='ふれる', hintEl.classList.add('show'); }, 2600);
+  setTimeout(()=>{ if(scene==='title'){ hintEl.textContent='ふれる'; hintEl.classList.add('show'); tapBtn.classList.add('show'); } }, 2600);
 }
 
 function goDistance(){
   scene='distance'; sceneStart=performance.now();
   titleEl.classList.remove('show');
+  tapBtn.classList.remove('show');
   nextBtn.classList.add('show');
   say('','ちかづけてみる');
 }
@@ -566,7 +586,7 @@ function goMerge(){
 let dragging=false, dragStartX=0;
 
 stage.addEventListener('pointerdown', e=>{
-  if(e.target===replayBtn||e.target===nextBtn) return;
+  if(e.target===replayBtn||e.target===nextBtn||e.target===tapBtn) return;
   if(scene==='title'){ goDistance(); return; }
   if(scene==='distance'){ dragging=true; dragStartX=e.clientX; }
   if(scene==='anger'){
@@ -613,6 +633,7 @@ nextBtn.addEventListener('click', e=>{
   if(scene==='distance') goGreek1();
   else if(scene==='greek1') goGreek2();
 });
+tapBtn.addEventListener('click', e=>{ e.stopPropagation(); goDistance(); });
 
 /* keyboard access */
 window.addEventListener('keydown', e=>{
@@ -671,14 +692,14 @@ function loop(now){
     if(Math.random()<0.0025) spawnRipple(signaless);
   }
   if(scene==='distance'){
-    if(Math.random()<0.009) spawnBubble(signal, null);
-    if(Math.random()<0.009) spawnBubble(signaless, null);
+    if(Math.random()<0.0045) spawnBubble(signal, null);
+    if(Math.random()<0.0045) spawnBubble(signaless, null);
   } else if(scene==='greek1'){
-    if(Math.random()<0.009) spawnBubble(signal, 'α');
-    if(Math.random()<0.009) spawnBubble(signaless, 'ω');
+    if(Math.random()<0.0045) spawnBubble(signal, 'α');
+    if(Math.random()<0.0045) spawnBubble(signaless, 'ω');
   } else if(scene==='greek2'){
-    if(Math.random()<0.007) spawnBubble(signal, 'ἀγάπη');
-    if(Math.random()<0.007) spawnBubble(signaless, 'πρᾶγμα');
+    if(Math.random()<0.0035) spawnBubble(signal, 'ἀγάπη');
+    if(Math.random()<0.0035) spawnBubble(signaless, 'πρᾶγμα');
   }
 
   /* draw */
