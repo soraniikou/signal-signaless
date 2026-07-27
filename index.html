@@ -128,10 +128,12 @@
   #input-area.show{ opacity:1; pointer-events:auto; }
   #input-label{
     font-family:'Shippori Mincho',serif;
-    font-size:clamp(13px,2.2vmin,18px); letter-spacing:.08em;
-    color:rgba(160,235,245,.92); margin:0 0 26px;
-    text-shadow:0 0 22px rgba(0,200,225,.55);
+    font-size:clamp(14px,2.4vmin,20px); letter-spacing:.08em;
+    color:rgba(220,250,255,1.0); margin:0 0 26px;
+    text-shadow:0 0 18px rgba(0,200,225,.70), 0 2px 8px rgba(0,0,0,.85);
     text-align:center;
+    background:rgba(0,18,35,0.55);
+    padding:10px 22px; border-radius:6px;
   }
   #signal-input{
     background:rgba(0,22,42,.62);
@@ -538,25 +540,7 @@ function drawGearFront(t){
   ctx.translate(cx, cy);
   ctx.rotate(angle);
 
-  /* sunflower petals */
-  for(let i = 0; i < petalCount; i++){
-    const a = (i / petalCount) * Math.PI * 2;
-    ctx.save();
-    ctx.rotate(a);
-    ctx.translate(r + petalLen * 0.42, 0);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, petalLen * 0.50, petalW * 0.50, 0, 0, Math.PI*2);
-    const pg = ctx.createRadialGradient(-petalLen*0.18, 0, 0, 0, 0, petalLen*0.52);
-    pg.addColorStop(0,   'rgba(255,248,200,0.28)');
-    pg.addColorStop(0.50,'rgba(248,225,130,0.15)');
-    pg.addColorStop(1,   'rgba(230,195,80,0.04)');
-    ctx.fillStyle = pg;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(220,195,100,0.08)';
-    ctx.lineWidth = 0.7;
-    ctx.stroke();
-    ctx.restore();
-  }
+  /* sunflower petals — hidden */
 
   /* outer ring */
   ctx.beginPath();
@@ -690,64 +674,71 @@ function drawLightWheel(t, fade){
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
 
-  /* rings: [radiusMul, rotSpeed, direction, arcFraction, rgb, segCount] */
+  /* complete glowing rings — rMul, rgb, lineWidthMul, blurMul, pulseSeed */
   const rings = [
-    [0.38, 0.60,  1, 0.24, '0,218,225',  5],
-    [0.62, 0.38, -1, 0.20, '0,205,120',  7],
-    [0.84, 0.50,  1, 0.17, '50,232,215', 6],
-    [1.02, 0.30, -1, 0.22, '0,210,135',  8],
-    [1.32, 0.42,  1, 0.14, '0,215,228', 10],
+    { rMul:0.38, rgb:'0,210,225',  lw:0.048, blur:0.14, seed:0.0 },
+    { rMul:0.62, rgb:'0,195,112',  lw:0.038, blur:0.11, seed:1.3 },
+    { rMul:0.84, rgb:'55,228,212', lw:0.034, blur:0.10, seed:2.6 },
+    { rMul:1.02, rgb:'0,205,132',  lw:0.030, blur:0.09, seed:0.8 },
+    { rMul:1.32, rgb:'0,212,228',  lw:0.024, blur:0.08, seed:2.1 },
   ];
 
-  for(const [rMul, spd, dir, arc, rgb, segs] of rings){
-    const ringR = r * rMul;
-    const baseA = t * spd * dir;
-    const lw    = Math.max(1.5, ringR * 0.038) * fade;
-    ctx.strokeStyle = `rgba(${rgb},${0.82*fade})`;
-    ctx.shadowColor = `rgba(${rgb},0.95)`;
-    ctx.shadowBlur  = lw * 3.8;
+  for(const ring of rings){
+    const ringR  = r * ring.rMul;
+    const pulse  = 0.68 + Math.sin(t * 0.55 + ring.seed) * 0.32;
+    const alpha  = 0.28 * fade * pulse;
+    const lw     = r * ring.lw * fade;
+    const blurPx = r * ring.blur;
+
+    ctx.save();
+    ctx.filter      = `blur(${blurPx}px)`;
     ctx.lineWidth   = lw;
-    ctx.lineCap     = 'round';
-    for(let j = 0; j < segs; j++){
-      const startA = baseA + (j / segs) * Math.PI*2;
-      const arcLen = arc * Math.PI * (0.88 + Math.sin(t*0.42+j*0.65)*0.14);
-      ctx.beginPath();
-      ctx.arc(cx, cy, ringR, startA, startA + arcLen);
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(${ring.rgb},${alpha})`;
+    ctx.shadowColor = `rgba(${ring.rgb},0.85)`;
+    ctx.shadowBlur  = lw * 4;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
   }
 
-  /* radiating spokes */
-  ctx.lineCap = 'butt';
-  const spokeN = 14;
+  /* rotating spokes */
+  const spokeN = 12;
   for(let i = 0; i < spokeN; i++){
-    const a   = (i / spokeN) * Math.PI*2 + t * 0.20;
-    const len = r * (0.55 + Math.sin(t*0.48 + i*0.45) * 0.20);
-    const col = i%2===0 ? '0,218,225' : '0,205,118';
-    const sg  = ctx.createLinearGradient(
-      cx, cy, cx + Math.cos(a)*r*1.45, cy + Math.sin(a)*r*1.45
+    const a    = (i / spokeN) * Math.PI*2 + t * 0.18;
+    const len  = r * (0.52 + Math.sin(t*0.48 + i*0.52) * 0.20);
+    const col  = i%2===0 ? '0,215,228' : '0,205,118';
+    const puls = 0.60 + Math.sin(t*0.75 + i*0.42) * 0.40;
+
+    ctx.save();
+    ctx.filter = `blur(${r*0.022}px)`;
+    const sg = ctx.createLinearGradient(
+      cx, cy, cx + Math.cos(a)*r*1.4, cy + Math.sin(a)*r*1.4
     );
     sg.addColorStop(0,    `rgba(${col},0)`);
-    sg.addColorStop(0.18, `rgba(${col},${0.30*fade})`);
-    sg.addColorStop(0.55, `rgba(${col},${0.48*fade})`);
+    sg.addColorStop(0.18, `rgba(${col},${0.18*fade*puls})`);
+    sg.addColorStop(0.55, `rgba(${col},${0.32*fade*puls})`);
     sg.addColorStop(1,    `rgba(${col},0)`);
     ctx.strokeStyle = sg;
-    ctx.lineWidth = Math.max(1, r*0.016) * fade;
+    ctx.lineWidth   = Math.max(0.8, r*0.010) * fade;
     ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a)*r*0.08, cy + Math.sin(a)*r*0.08);
+    ctx.moveTo(cx + Math.cos(a)*r*0.06, cy + Math.sin(a)*r*0.06);
     ctx.lineTo(cx + Math.cos(a)*len,    cy + Math.sin(a)*len);
     ctx.stroke();
+    ctx.restore();
   }
 
-  /* central pulse */
-  const pR  = r * (0.20 + Math.sin(t*1.2)*0.06);
-  const cg  = ctx.createRadialGradient(cx, cy, 0, cx, cy, pR);
-  cg.addColorStop(0,   `rgba(160,255,248,${0.55*fade})`);
-  cg.addColorStop(0.5, `rgba(40,215,200,${0.28*fade})`);
-  cg.addColorStop(1,   'rgba(0,180,185,0)');
+  /* central soft pulse */
+  const pR = r * (0.18 + Math.sin(t*1.1)*0.05);
+  ctx.save();
+  ctx.filter = `blur(${r*0.06}px)`;
+  const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, pR);
+  cg.addColorStop(0,   `rgba(150,255,250,${0.38*fade})`);
+  cg.addColorStop(0.5, `rgba(30,210,200,${0.18*fade})`);
+  cg.addColorStop(1,   'rgba(0,175,185,0)');
   ctx.fillStyle = cg;
   ctx.beginPath(); ctx.arc(cx, cy, pR, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
 
   ctx.restore();
 }
