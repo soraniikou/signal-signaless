@@ -490,7 +490,7 @@ function drawGearBack(){
 
 function drawGearFront(t){
   const { cx, cy, r } = gearGeom();
-  const angle      = t * 0.13;
+  const angle      = t * 0.043;
   const petalCount = 18;
   const petalLen   = r * 0.40;
   const petalW     = r * 0.125;
@@ -510,12 +510,12 @@ function drawGearFront(t){
     ctx.beginPath();
     ctx.ellipse(0, 0, petalLen * 0.50, petalW * 0.50, 0, 0, Math.PI*2);
     const pg = ctx.createRadialGradient(-petalLen*0.18, 0, 0, 0, 0, petalLen*0.52);
-    pg.addColorStop(0,   'rgba(255,248,200,0.58)');
-    pg.addColorStop(0.50,'rgba(248,225,130,0.35)');
-    pg.addColorStop(1,   'rgba(230,195,80,0.10)');
+    pg.addColorStop(0,   'rgba(255,248,200,0.28)');
+    pg.addColorStop(0.50,'rgba(248,225,130,0.15)');
+    pg.addColorStop(1,   'rgba(230,195,80,0.04)');
     ctx.fillStyle = pg;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(220,195,100,0.18)';
+    ctx.strokeStyle = 'rgba(220,195,100,0.08)';
     ctx.lineWidth = 0.7;
     ctx.stroke();
     ctx.restore();
@@ -524,12 +524,12 @@ function drawGearFront(t){
   /* outer ring */
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI*2);
-  ctx.strokeStyle = 'rgba(235,215,140,0.38)';
+  ctx.strokeStyle = 'rgba(235,215,140,0.18)';
   ctx.lineWidth = Math.max(1.2, r * 0.018);
   ctx.stroke();
 
   /* spokes */
-  ctx.strokeStyle = 'rgba(225,205,120,0.18)';
+  ctx.strokeStyle = 'rgba(225,205,120,0.09)';
   ctx.lineWidth = Math.max(0.8, r * 0.009);
   for(let i = 0; i < spokeCount; i++){
     const a = (i / spokeCount) * Math.PI * 2;
@@ -541,14 +541,14 @@ function drawGearFront(t){
 
   /* sunflower centre hub */
   const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, hubR*2.6);
-  hg.addColorStop(0,   'rgba(100,80,30,0.48)');
-  hg.addColorStop(0.55,'rgba(80,60,20,0.30)');
-  hg.addColorStop(1,   'rgba(60,45,10,0.10)');
+  hg.addColorStop(0,   'rgba(100,80,30,0.22)');
+  hg.addColorStop(0.55,'rgba(80,60,20,0.13)');
+  hg.addColorStop(1,   'rgba(60,45,10,0.04)');
   ctx.beginPath();
   ctx.arc(0, 0, hubR*2.6, 0, Math.PI*2);
   ctx.fillStyle = hg;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(220,200,110,0.28)';
+  ctx.strokeStyle = 'rgba(220,200,110,0.13)';
   ctx.lineWidth = 1.0;
   ctx.stroke();
 
