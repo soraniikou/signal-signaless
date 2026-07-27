@@ -118,6 +118,36 @@
     50%{ box-shadow:0 0 32px rgba(255,140,210,.60); }
   }
 
+  #input-area{
+    position:absolute; inset:0; z-index:7;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition:opacity 1.8s ease;
+  }
+  #input-area.show{ opacity:1; pointer-events:auto; }
+  #input-label{
+    font-family:'Shippori Mincho',serif;
+    font-size:clamp(13px,2.2vmin,18px); letter-spacing:.08em;
+    color:rgba(160,235,245,.92); margin:0 0 26px;
+    text-shadow:0 0 22px rgba(0,200,225,.55);
+    text-align:center;
+  }
+  #signal-input{
+    background:rgba(0,22,42,.62);
+    border:1px solid rgba(0,200,225,.42); border-radius:6px;
+    color:rgba(200,248,255,.95);
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    font-weight:300; font-size:clamp(14px,2vmin,16px);
+    letter-spacing:.04em;
+    padding:13px 22px; width:min(420px,78vw);
+    outline:none; transition:border-color .4s,box-shadow .4s;
+  }
+  #signal-input:focus{
+    border-color:rgba(0,215,230,.72);
+    box-shadow:0 0 20px rgba(0,200,225,.32);
+  }
+
   @media (prefers-reduced-motion: reduce){
     #hint.show{ animation:none; opacity:.8; }
   }
@@ -138,6 +168,11 @@
   <button id="replay">back</button>
   <button id="next">next</button>
   <button id="tap">tap</button>
+
+  <div id="input-area">
+    <p id="input-label">Send a small signal — starting with you</p>
+    <input type="text" id="signal-input" autocomplete="off" spellcheck="false">
+  </div>
 </div>
 
 <script>
@@ -156,6 +191,8 @@ const titleEl = document.getElementById('title');
 const replayBtn = document.getElementById('replay');
 const nextBtn   = document.getElementById('next');
 const tapBtn    = document.getElementById('tap');
+const inputAreaEl = document.getElementById('input-area');
+const signalInput = document.getElementById('signal-input');
 
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -645,6 +682,76 @@ function drawGearAurora(t){
   ctx.restore();
 }
 
+/* ============ light wheel ============ */
+function drawLightWheel(t, fade){
+  if(fade <= 0) return;
+  const { cx, cy, r } = gearGeom();
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  /* rings: [radiusMul, rotSpeed, direction, arcFraction, rgb, segCount] */
+  const rings = [
+    [0.38, 0.60,  1, 0.24, '0,218,225',  5],
+    [0.62, 0.38, -1, 0.20, '0,205,120',  7],
+    [0.84, 0.50,  1, 0.17, '50,232,215', 6],
+    [1.02, 0.30, -1, 0.22, '0,210,135',  8],
+    [1.32, 0.42,  1, 0.14, '0,215,228', 10],
+  ];
+
+  for(const [rMul, spd, dir, arc, rgb, segs] of rings){
+    const ringR = r * rMul;
+    const baseA = t * spd * dir;
+    const lw    = Math.max(1.5, ringR * 0.038) * fade;
+    ctx.strokeStyle = `rgba(${rgb},${0.82*fade})`;
+    ctx.shadowColor = `rgba(${rgb},0.95)`;
+    ctx.shadowBlur  = lw * 3.8;
+    ctx.lineWidth   = lw;
+    ctx.lineCap     = 'round';
+    for(let j = 0; j < segs; j++){
+      const startA = baseA + (j / segs) * Math.PI*2;
+      const arcLen = arc * Math.PI * (0.88 + Math.sin(t*0.42+j*0.65)*0.14);
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, startA, startA + arcLen);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  /* radiating spokes */
+  ctx.lineCap = 'butt';
+  const spokeN = 14;
+  for(let i = 0; i < spokeN; i++){
+    const a   = (i / spokeN) * Math.PI*2 + t * 0.20;
+    const len = r * (0.55 + Math.sin(t*0.48 + i*0.45) * 0.20);
+    const col = i%2===0 ? '0,218,225' : '0,205,118';
+    const sg  = ctx.createLinearGradient(
+      cx, cy, cx + Math.cos(a)*r*1.45, cy + Math.sin(a)*r*1.45
+    );
+    sg.addColorStop(0,    `rgba(${col},0)`);
+    sg.addColorStop(0.18, `rgba(${col},${0.30*fade})`);
+    sg.addColorStop(0.55, `rgba(${col},${0.48*fade})`);
+    sg.addColorStop(1,    `rgba(${col},0)`);
+    ctx.strokeStyle = sg;
+    ctx.lineWidth = Math.max(1, r*0.016) * fade;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a)*r*0.08, cy + Math.sin(a)*r*0.08);
+    ctx.lineTo(cx + Math.cos(a)*len,    cy + Math.sin(a)*len);
+    ctx.stroke();
+  }
+
+  /* central pulse */
+  const pR  = r * (0.20 + Math.sin(t*1.2)*0.06);
+  const cg  = ctx.createRadialGradient(cx, cy, 0, cx, cy, pR);
+  cg.addColorStop(0,   `rgba(160,255,248,${0.55*fade})`);
+  cg.addColorStop(0.5, `rgba(40,215,200,${0.28*fade})`);
+  cg.addColorStop(1,   'rgba(0,180,185,0)');
+  ctx.fillStyle = cg;
+  ctx.beginPath(); ctx.arc(cx, cy, pR, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
 /* ============ 電信柱のささやき ============ */
 const rumors = [
   'みぶんがちがう','本線と軽便','東京へ知らせました',
@@ -697,6 +804,7 @@ function say(text, hint){
 let scene='title';
 let tries=0, taps=0, angerPeak=0, holding=false, released=false;
 let sceneStart=0;
+let poleFade=1, lightWheelFired=false;
 
 function goTitle(){
   scene='title';
@@ -708,6 +816,8 @@ function goTitle(){
   signal.shake=signaless.shake=0;
   replayBtn.classList.remove('show');
   nextBtn.classList.remove('show');
+  poleFade=1; lightWheelFired=false;
+  inputAreaEl.classList.remove('show');
   say('', '');
   titleEl.classList.add('show');
   setTimeout(()=>{ if(scene==='title'){ hintEl.textContent='ふれる'; hintEl.classList.add('show'); tapBtn.classList.add('show'); } }, 2600);
@@ -733,9 +843,18 @@ function goGreek2(){
 
 function goGear(){
   scene='gear'; sceneStart=performance.now();
+  poleFade=1; lightWheelFired=false;
   nextBtn.classList.remove('show');
   replayBtn.classList.add('show');
   loveBubbles=[]; ripples=[];
+  say('','');
+}
+
+function goInput(){
+  scene='input'; sceneStart=performance.now();
+  nextBtn.classList.remove('show');
+  inputAreaEl.classList.add('show');
+  setTimeout(()=>{ if(scene==='input') signalInput.focus(); }, 400);
   say('','');
 }
 
@@ -768,6 +887,7 @@ let dragging=false, dragStartX=0;
 
 stage.addEventListener('pointerdown', e=>{
   if(e.target===replayBtn||e.target===nextBtn||e.target===tapBtn) return;
+  if(inputAreaEl.contains(e.target)) return;
   if(scene==='title'){ goDistance(); return; }
   if(scene==='distance'){ dragging=true; dragStartX=e.clientX; }
   if(scene==='anger'){
@@ -814,6 +934,7 @@ nextBtn.addEventListener('click', e=>{
   if(scene==='distance') goGreek1();
   else if(scene==='greek1') goGreek2();
   else if(scene==='greek2') goGear();
+  else if(scene==='gear') goInput();
 });
 tapBtn.addEventListener('click', e=>{ e.stopPropagation(); goDistance(); });
 
@@ -863,6 +984,13 @@ function loop(now){
     bloom = Math.min(1, bloom + dt*0.16);
     beamA = Math.max(0, beamA - dt*0.10);
     beamB = Math.max(0, beamB - dt*0.10);
+  } else if(scene==='gear'){
+    if(poleFade > 0){
+      poleFade = Math.max(0, poleFade - dt/5.0);
+    } else if(!lightWheelFired){
+      lightWheelFired = true;
+      setTimeout(()=>{ if(scene==='gear') nextBtn.classList.add('show'); }, 1800);
+    }
   }
 
   shake = Math.max(0, shake - dt*22);
@@ -901,6 +1029,7 @@ function loop(now){
   if(scene==='gear'){
     const { cx, cy } = gearGeom();
     ctx.save();
+    ctx.globalAlpha = poleFade;
     ctx.translate(cx, cy);
     ctx.scale(0.6, 0.6);
     ctx.translate(-cx, -cy);
@@ -914,6 +1043,9 @@ function loop(now){
   if(scene==='gear') ctx.restore();
 
   if(scene==='gear') drawGearFront(t);
+
+  const lwFade = Math.min(1, Math.max(0, (1-poleFade)*1.5));
+  if(scene==='gear' && lwFade > 0) drawLightWheel(t, lwFade);
 
   drawRipples();
   drawBubbles();
