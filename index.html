@@ -93,14 +93,19 @@
     position:absolute; bottom:5vh; left:50%; transform:translateX(-50%);
     font-family:'Zen Kaku Gothic New',sans-serif; font-weight:300;
     font-size:12px; letter-spacing:.22em;
-    background:transparent; color:rgba(255,180,220,.85);
-    border:1px solid rgba(255,160,210,.35); border-radius:999px;
+    background:transparent; color:rgba(255,218,238,1.0);
+    border:1px solid rgba(255,168,218,.65); border-radius:999px;
     padding:9px 26px; cursor:pointer; z-index:8;
     opacity:0; pointer-events:none; transition:opacity 1.6s ease,background .4s ease;
+    text-shadow:0 0 14px rgba(255,150,215,.65);
   }
   #next.show{ opacity:1; pointer-events:auto; }
-  #next:hover{ background:rgba(255,150,210,.10); }
+  #next:hover{ background:rgba(255,150,210,.12); }
 
+  /* スマホ：nextボタンを信号機の下に移動 */
+  @media (pointer:coarse) and (max-width:768px){
+    #next{ bottom:auto; top:79vh; }
+  }
   #tap{
     position:absolute; top:58%; left:50%; transform:translateX(-50%);
     font-family:'Zen Kaku Gothic New',sans-serif; font-weight:300;
