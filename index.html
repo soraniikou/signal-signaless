@@ -133,6 +133,7 @@
     padding:0 6vw;
   }
   #input-area.show{ opacity:1; pointer-events:auto; }
+  #input-area.has-messages #input-label{ display:none; }
   #msg-display{
     width:min(440px,80vw); max-height:28vh;
     overflow-y:auto; margin-bottom:18px;
@@ -853,6 +854,7 @@ function goTitle(){
   nextBtn.classList.remove('show');
   poleFade=1; lightWheelFired=false;
   inputAreaEl.classList.remove('show');
+  inputAreaEl.classList.remove('has-messages');
   msgDisplay.innerHTML='';
   say('', '');
   titleEl.classList.add('show');
@@ -978,6 +980,8 @@ function sendSignal(){
   msgDisplay.scrollTop = msgDisplay.scrollHeight;
   signalInput.value = '';
   signalInput.focus();
+  inputAreaEl.classList.add('has-messages');
+}
 }
 sendBtn.addEventListener('click', e=>{ e.stopPropagation(); sendSignal(); });
 signalInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendSignal(); } });
