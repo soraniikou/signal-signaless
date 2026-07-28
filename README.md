@@ -41,3 +41,8 @@ I am deeply grateful to the universe for being able to experience such a profoun
 Thank you very much 🌠
 ![signal3](./%73%69%67%6e%61%6c%33%2e%70%6e%67)
 
+📝このアプリには、サーバーもデータベースもありません。
+入力された言葉はブラウザの中で光になり、そのまま消えます。
+送信も保存も記録も行われないため、開発者を含め、誰もその内容を知ることはできません。
+ページを閉じた時点で、書かれたものは何も残りません。
+
