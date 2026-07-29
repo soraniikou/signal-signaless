@@ -982,7 +982,6 @@ function sendSignal(){
   signalInput.focus();
   inputAreaEl.classList.add('has-messages');
 }
-}
 sendBtn.addEventListener('click', e=>{ e.stopPropagation(); sendSignal(); });
 signalInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); sendSignal(); } });
 nextBtn.addEventListener('click', e=>{
