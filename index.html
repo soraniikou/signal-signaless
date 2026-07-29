@@ -102,10 +102,11 @@
   #next.show{ opacity:1; pointer-events:auto; }
   #next:hover{ background:rgba(255,150,210,.12); }
 
-  /* スマホ：nextボタンを信号機の下に移動 / tapボタンを0.7倍に縮小 */
+  /* スマホ：next・backを上へ / tapを0.6倍に縮小 */
   @media (pointer:coarse) and (max-width:768px){
     #next{ bottom:auto; top:79vh; }
-    #tap{ font-size:clamp(10px,1.68vmin,14px); padding:10px 31px; }
+    #replay{ bottom:auto; top:79vh; }
+    #tap{ font-size:clamp(9px,1.44vmin,12px); padding:8px 26px; }
   }
   #tap{
     position:absolute; top:58%; left:50%; transform:translateX(-50%);
