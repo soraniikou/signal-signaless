@@ -39,7 +39,8 @@ May a bright light shine into all of your hearts
 I am deeply grateful to the universe for being able to experience such a profound feeling today.
 
 Thank you very much 🌠
-![signal3](./%73%69%67%6e%61%6c%33%2e%70%6e%67)
+![からす4](./%6b%61%72%61%73%75%34%2e%70%6e%67)
+
 
 📝このアプリには、サーバーもデータベースもありません。
 入力された言葉はブラウザの中で光になり、そのまま消えます。
