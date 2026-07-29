@@ -995,6 +995,7 @@ tapBtn.addEventListener('click', e=>{ e.stopPropagation(); goDistance(); });
 
 /* keyboard access */
 window.addEventListener('keydown', e=>{
+  if(document.activeElement === signalInput) return;
   if(e.key!==' ' && e.key!=='Enter') return;
   e.preventDefault();
   if(scene==='title') goDistance();
