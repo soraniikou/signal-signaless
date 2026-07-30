@@ -103,10 +103,9 @@
   #next:hover{ background:rgba(255,150,210,.12); }
 
   /* スマホ：next・backを上へ / tapを0.6倍に縮小 */
-  @media (pointer:coarse) and (max-width:768px){
+  @media (max-width:768px){
     #next{ bottom:auto; top:79vh; }
     #replay{ bottom:auto; top:79vh; }
-    #tap{ font-size:clamp(9px,1.44vmin,12px); padding:8px 26px; }
   }
   #tap{
     position:absolute; top:58%; left:50%; transform:translateX(-50%);
@@ -123,6 +122,14 @@
   @keyframes tapGlow{
     0%,100%{ box-shadow:0 0 10px rgba(255,140,210,.18); }
     50%{ box-shadow:0 0 32px rgba(255,140,210,.60); }
+  }
+
+  /* スマホ：tapを0.6倍（基本スタイルの後） */
+  @media (max-width:768px){
+    #tap{
+      transform:translateX(-50%) scale(0.6);
+      transform-origin:center center;
+    }
   }
 
   #input-area{
@@ -256,6 +263,14 @@ function resize(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   horizon = H*0.74;
   poleH = Math.min(H*0.34, W*0.42);
+  /* スマホ：二人の間隔を少し広げつつ画面内に収める */
+  if(W <= 768){
+    signal.xr = 0.25;
+    signaless.xr = 0.75;
+  } else {
+    signal.xr = 0.29;
+    signaless.xr = 0.71;
+  }
   buildStars();
 }
 window.addEventListener('resize', resize);
