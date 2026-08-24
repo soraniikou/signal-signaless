@@ -18,7 +18,7 @@
 
 ありがとうございました🌠
 ![signal1](./%73%69%67%6e%61%6c%31%2e%70%6e%67)
-![signal2](./%73%69%67%6e%61%6c%32%2e%70%6e%67)
+
 
 Kenji Miyazawa’s fairy tale "Signal and Signalles" is a love story between "Signal," a new traffic signal on the main railway line, and "Signalles," an older signal on a light railway.
 
