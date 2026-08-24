@@ -495,20 +495,21 @@ function drawRipples(){
   });
 }
 
-function spawnBubble(p, letter){
+function spawnBubble(p, letter, speedMul){
+  speedMul = speedMul || 1.0;
   const lp = getLampPos2(p);
   const isSignal = (p === signal);
   const sizeScale = (letter && letter.length > 2) ? 3.4 : 1.0;
   const r = poleH*(0.036 + Math.random()*0.056) * sizeScale;
   const distToCenter = Math.abs(W*0.5 - lp.x);
-  const targetFrames = 210 + Math.floor(Math.random()*80);
+  const targetFrames = (210 + Math.floor(Math.random()*80)) / speedMul;
   const vxSpeed = distToCenter / targetFrames;
   loveBubbles.push({
     x: lp.x,
     y: lp.y + (Math.random()-0.5)*poleH*0.10,
     r,
     vx: (isSignal ? 1 : -1) * vxSpeed,
-    vy: -(poleH*0.0007 + Math.random()*poleH*0.0008),
+    vy: -(poleH*0.0007 + Math.random()*poleH*0.0008) * speedMul,
     wobble: Math.random()*Math.PI*2,
     wobbleSpeed: 0.035 + Math.random()*0.03,
     hue: 310 + Math.random()*60,
@@ -1081,7 +1082,7 @@ function loop(now){
     if(Math.random()<0.0045) spawnBubble(signaless, 'ω');
   } else if(scene==='greek2'){
     if(Math.random()<0.0035) spawnBubble(signal, 'ἀγάπη');
-    if(Math.random()<0.0035) spawnBubble(signaless, 'Αμοιβαίος έρωτας');
+    if(Math.random()<0.00175) spawnBubble(signaless, 'Αμοιβαίος έρωτας', 0.5);
   }
 
   /* draw */
